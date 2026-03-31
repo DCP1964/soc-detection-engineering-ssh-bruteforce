@@ -1,0 +1,127 @@
+# SSH Brute Force Detection - SPL Queries
+
+## 1. Detection Query
+
+Purpose:
+Identify brute force authentication attempts and correlate with known malicious IP addresses.
+
+```spl id="det01"
+index=* ("Failed password" OR "authentication failure")
+| stats count by src_ip
+| where count > 5
+| lookup known_bad_ips.csv src_ip OUTPUT src_ip AS matched_ip
+| where isnotnull(matched_ip)
+```
+
+---
+
+## 2. Simulation Query
+
+Purpose:
+Simulate brute force attack activity for testing the detection logic.
+
+```spl id="sim01"
+| makeresults count=10
+| eval src_ip="192.168.1.50"
+| eval _raw="Failed password for invalid user root from ".src_ip
+| table _time, src_ip, _raw
+```
+
+---
+
+## 3. Detection Validation Query
+
+Purpose:
+Validate detection logic using simulated data.
+
+```spl id="val01"
+| makeresults count=10
+| eval src_ip="192.168.1.50"
+| stats count by src_ip
+| where count > 5
+| lookup known_bad_ips.csv src_ip OUTPUT src_ip AS matched_ip
+| where isnotnull(matched_ip)
+```
+
+---
+
+## 4. Investigation Query - Failed Logins
+
+Purpose:
+Investigate failed authentication attempts from a specific IP.
+
+```spl id="inv01"
+index=* ("Failed password" OR "authentication failure")
+| search src_ip="192.168.1.50"
+```
+
+---
+
+## 5. Investigation Query - Top Source IPs
+
+Purpose:
+Identify top IP addresses generating failed login attempts.
+
+```spl id="inv02"
+index=* ("Failed password" OR "authentication failure")
+| stats count by src_ip
+| sort - count
+```
+
+---
+
+## 6. Investigation Query - Targeted Accounts
+
+Purpose:
+Identify usernames targeted during brute force attempts.
+
+```spl id="inv03"
+index=* ("Failed password" OR "authentication failure")
+| rex "user\s+(?<username>\w+)"
+| stats count by username
+| sort - count
+```
+
+---
+
+## 7. Investigation Query - Time Analysis
+
+Purpose:
+Analyze timing and frequency of brute force attempts.
+
+```spl id="inv04"
+index=* ("Failed password" OR "authentication failure")
+| timechart count by src_ip
+```
+
+---
+
+## 8. Lookup Verification Query
+
+Purpose:
+Verify contents of the threat intelligence lookup table.
+
+```spl id="lookup01"
+| inputlookup known_bad_ips.csv
+```
+
+---
+
+## 9. Lookup Correlation Test
+
+Purpose:
+Test correlation between event data and lookup table.
+
+```spl id="lookup02"
+| makeresults
+| eval src_ip="192.168.1.50"
+| lookup known_bad_ips.csv src_ip OUTPUT src_ip AS matched_ip
+```
+
+---
+
+## 10. Notes
+
+* Replace index=* with the appropriate index in production environments
+* Adjust threshold (count > 5) based on environment baseline
+* Ensure field name consistency (src_ip) across data sources
