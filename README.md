@@ -94,6 +94,7 @@ To validate the detection logic, simulated brute force activity was generated.
 | lookup known_bad_ips.csv src_ip OUTPUT src_ip AS matched_ip
 | where isnotnull(matched_ip)
 ```
+Simulated data (192.168.1.50) was used to validate detection logic, while real authentication logs from the environment were analyzed to demonstrate actual brute force behavior.
 
 ### Validation Outcome
 
@@ -116,6 +117,7 @@ Upon detection, the following investigation steps are performed:
 5. Correlate with additional activity from the same IP
 6. Verify IP reputation using threat intelligence sources
 
+Repeated failed login attempts targeting common usernames (e.g., root, invalid users) indicate automated brute force activity rather than normal user behavior.
 ---
 
 ## 8 False Positive Mitigation
@@ -138,7 +140,11 @@ Monitor for repeated patterns rather than single events
 
 ---
 
-## 10. Project Structure
+## 10. Detection Limitations
+This detection may not identify distributed brute force attacks where attempts are spread across multiple IP addresses. Additional correlation logic would be required to detect such patterns.
+---
+
+## 11. Project Structure
 
 ```
 case_studies/
@@ -150,7 +156,7 @@ screenshots/
 
 ---
 
-## 11. Key Skills Demonstrated
+## 12. Key Skills Demonstrated
 
 * SPL query development
 * Detection engineering
@@ -161,7 +167,7 @@ screenshots/
 
 ---
 
-## 12. Assumptions and Limitations
+## 13. Assumptions and Limitations
 
 * Detection is based on simulated and limited log data
 * Threshold values may vary in production environments
@@ -170,7 +176,7 @@ screenshots/
 
 ---
 
-## 13. Future Improvements
+## 14. Future Improvements
 
 * Integrate real authentication logs from Linux systems
 * Add geo-location enrichment
@@ -180,7 +186,7 @@ screenshots/
 
 ---
 
-## 14. Conclusion
+## 15. Conclusion
 
 This project demonstrates a complete SOC detection workflow, from data ingestion and detection logic to validation and response. It highlights the practical application of detection engineering techniques using Splunk and provides a reproducible framework for identifying brute force attacks enriched with threat intelligence.
 
