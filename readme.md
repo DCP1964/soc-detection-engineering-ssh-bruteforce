@@ -2,6 +2,14 @@
 
 ---
 
+## Detection Output
+
+### Raw Brute Force Logs
+![Raw Logs](screenshots/ssh_bruteforce_raw_logs.png)
+
+### Detection with Threat Intelligence Correlation
+![Detection Result](screenshots/detection_correlation_result.png)
+
 ## 1. Project Overview
 
 This project demonstrates the design and validation of a Security Operations Center (SOC) detection use case in Splunk. The detection identifies SSH brute force activity and correlates it with a custom threat intelligence dataset.
