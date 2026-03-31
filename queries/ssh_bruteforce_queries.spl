@@ -1,40 +1,74 @@
 # SSH Brute Force Detection - SPL Queries
 
+# RATIONALE:
+# This detection identifies SSH brute force attempts by aggregating failed login events.
+# It improves accuracy by:
+# - Using specific index and sourcetype (performance optimization)
+# - Tracking attempted usernames (attack visibility)
+# - Measuring attack duration (behavior analysis)
+# - Enriching with threat intelligence (lookup table)
+
+# MITRE ATT&CK:
+# T1110 — Brute Force
+
+
 ## 1. Detection Query
 
-Purpose:
+**Purpose:**  
 Identify brute force authentication attempts and correlate with known malicious IP addresses.
 
-```spl id="det01"
-index=* ("Failed password" OR "authentication failure")
-| stats count by src_ip
-| where count > 5
+```spl
+index=security sourcetype=linux_secure ("Failed password" OR "authentication failure")
+| stats count, values(user) as attempted_users, min(_time) as first_attempt, max(_time) as last_attempt by src_ip
+| where count > 10
 | lookup known_bad_ips.csv src_ip OUTPUT src_ip AS matched_ip
 | where isnotnull(matched_ip)
+| eval duration_minutes = round((last_attempt - first_attempt)/60, 2)
 ```
+
+**Key Enhancements:**
+- Uses specific index and sourcetype for performance optimization  
+- Aggregates failed attempts and targeted usernames  
+- Calculates attack duration for behavioral context  
+- Enriches results using threat intelligence lookup  
 
 ---
 
 ## 2. Simulation Query
 
-Purpose:
+**Purpose:**  
 Simulate brute force attack activity for testing the detection logic.
 
-```spl id="sim01"
+```spl
 | makeresults count=10
 | eval src_ip="192.168.1.50"
 | eval _raw="Failed password for invalid user root from ".src_ip
 | table _time, src_ip, _raw
 ```
-
 ---
 
-## 3. Detection Validation Query
+## 3. Detection: Successful Login After Brute Force
 
-Purpose:
+**Purpose:**  
+Identify potential account compromise where multiple failed login attempts are followed by a successful login from the same source IP.
+
+```spl
+index=security sourcetype=linux_secure
+("Failed password" OR "Accepted password")
+| eval status=if(searchmatch("Failed password"), "failed", "success")
+| stats count(eval(status="failed")) as failed_count,
+        count(eval(status="success")) as success_count
+        by src_ip
+| where failed_count > 5 AND success_count > 0
+```
+---
+
+## 4. Detection Validation Query
+
+**Purpose:**
 Validate detection logic using simulated data.
 
-```spl id="val01"
+```spl
 | makeresults count=10
 | eval src_ip="192.168.1.50"
 | stats count by src_ip
@@ -45,38 +79,41 @@ Validate detection logic using simulated data.
 
 ---
 
-## 4. Investigation Query - Failed Logins
+## 5. Investigation Query - Failed Logins
 
-Purpose:
+**Purpose:**
 Investigate failed authentication attempts from a specific IP.
 
-```spl id="inv01"
-index=* ("Failed password" OR "authentication failure")
+```spl
+index=security sourcetype=linux_secure
+ ("Failed password" OR "authentication failure")
 | search src_ip="192.168.1.50"
 ```
 
 ---
 
-## 5. Investigation Query - Top Source IPs
+## 6. Investigation Query - Top Source IPs
 
-Purpose:
+**Purpose:**
 Identify top IP addresses generating failed login attempts.
 
-```spl id="inv02"
-index=* ("Failed password" OR "authentication failure")
+```spl
+index=security sourcetype=linux_secure
+("Failed password" OR "authentication failure")
 | stats count by src_ip
 | sort - count
 ```
 
 ---
 
-## 6. Investigation Query - Targeted Accounts
+## 7. Investigation Query - Targeted Accounts
 
-Purpose:
+**Purpose:**
 Identify usernames targeted during brute force attempts.
 
-```spl id="inv03"
-index=* ("Failed password" OR "authentication failure")
+```spl
+index=security sourcetype=linux_secure
+ ("Failed password" OR "authentication failure")
 | rex "user\s+(?<username>\w+)"
 | stats count by username
 | sort - count
@@ -84,35 +121,36 @@ index=* ("Failed password" OR "authentication failure")
 
 ---
 
-## 7. Investigation Query - Time Analysis
+## 8. Investigation Query - Time Analysis
 
-Purpose:
+**Purpose:**
 Analyze timing and frequency of brute force attempts.
 
-```spl id="inv04"
-index=* ("Failed password" OR "authentication failure")
+```spl
+index=security sourcetype=linux_secure
+ ("Failed password" OR "authentication failure")
 | timechart count by src_ip
 ```
 
 ---
 
-## 8. Lookup Verification Query
+## 9. Lookup Verification Query
 
-Purpose:
+**Purpose:**
 Verify contents of the threat intelligence lookup table.
 
-```spl id="lookup01"
+```spl
 | inputlookup known_bad_ips.csv
 ```
 
 ---
 
-## 9. Lookup Correlation Test
+## 10. Lookup Correlation Test
 
-Purpose:
+**Purpose:**
 Test correlation between event data and lookup table.
 
-```spl id="lookup02"
+```spl
 | makeresults
 | eval src_ip="192.168.1.50"
 | lookup known_bad_ips.csv src_ip OUTPUT src_ip AS matched_ip
@@ -120,8 +158,8 @@ Test correlation between event data and lookup table.
 
 ---
 
-## 10. Notes
+## 11. Notes
 
-* Replace index=* with the appropriate index in production environments
-* Adjust threshold (count > 5) based on environment baseline
-* Ensure field name consistency (src_ip) across data sources
+- Replaced index=* with the appropriate index in production environments (index=security sourcetype=linux_secure)
+- Adjust threshold (count > 5) based on environment baseline
+- Ensure field name consistency (src_ip) across data sources
