@@ -202,6 +202,6 @@ This project demonstrates a complete SOC detection workflow, from data ingestion
 
 ---
 
-## 15. Evidence
+## 16. Evidence
 
 Refer to the screenshots directory for detection results and validation output.
