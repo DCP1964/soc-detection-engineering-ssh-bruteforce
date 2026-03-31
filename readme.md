@@ -1,6 +1,9 @@
 # SOC Detection Engineering Project — SSH Brute Force with Threat Intelligence Correlation
 
 ---
+## Detection Output
+### Raw Brute Force Logs
+### Detection with Threat Intelligence Correlation
 
 ## Detection Output
 
