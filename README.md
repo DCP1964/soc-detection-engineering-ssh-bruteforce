@@ -73,6 +73,15 @@ index=* ("Failed password" OR "authentication failure")
 | where isnotnull(matched_ip)
 ```
 
+### WHY THIS DETECTION WORKS
+
+Detection Rationale
+
+This detection is effective because it combines behavioral analysis with threat intelligence correlation. Brute force attacks generate a high volume of failed authentication attempts, which can be identified through aggregation.
+
+By correlating these events with a known malicious IP list, the detection reduces false positives and prioritizes high-confidence threats.
+
+
 ### Key Concepts
 
 * Threshold-based detection (count > 5)
@@ -94,6 +103,7 @@ To validate the detection logic, simulated brute force activity was generated.
 | lookup known_bad_ips.csv src_ip OUTPUT src_ip AS matched_ip
 | where isnotnull(matched_ip)
 ```
+
 Simulated data (192.168.1.50) was used to validate detection logic, while real authentication logs from the environment were analyzed to demonstrate actual brute force behavior.
 
 ### Validation Outcome
